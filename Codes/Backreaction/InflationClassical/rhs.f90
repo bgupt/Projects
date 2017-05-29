@@ -199,7 +199,7 @@ module rhs
           phidloctmp = y4/y1**3
       
           rhoqlocal = philoc
-          pqlocal = rhoqlocal*third!phidloc
+          pqlocal = phidloc
  
        ! adot
            yderiv(1) = y2 !* sqrt(8.0_wp*pi*third*(phidloc**2/2.0_wp &
