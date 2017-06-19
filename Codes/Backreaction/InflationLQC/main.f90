@@ -10,7 +10,7 @@ program lqcpower
    character(len=3) :: iname,jname 
    complex(wp), dimension(4) :: dydttmp
    complex(wp) :: qvac, qdvac, rhochk, betai
-   real(wp) :: hmin, x1, x2, h1, rhoqc, pressqc, wq, vq1
+   real(wp) :: hmin, x1, x2, h1, rhoqc, pressqc, wq, vq1, vq2
    real(wp) :: at,at1,at2,at3,at4,at3tmp,phi,phid,phi2d,rhot,hub, &
                hubd,hub2d,rhoq,rhoq1,rhoq2, pressq
    real(wp), dimension(:), allocatable :: allofthem
@@ -59,8 +59,8 @@ do iter=1, maxiter
    write(jname, '(i3.3)') iter
    print*, 'iteration=', iter
 
-     bckgrnd(2) = bckgrnd(1)*sqrt(8.0_wp*pi*third*(bckgrnd(4)**2/(2.0_wp*bckgrnd(1)**6) + &
-                         potential(bckgrnd(3))  + abs(rhoqsum(1))))
+     bckgrnd(2) = (H0/dabs(H0))*bckgrnd(1)*sqrt(8.0_wp*pi*third*(bckgrnd(4)**2/(2.0_wp*bckgrnd(1)**6) + &
+                         potential(bckgrnd(3))  + (rhoqsum(1))))
 
 
    print*, bckgrnd
@@ -94,18 +94,19 @@ do iter=1, maxiter
      phiarray(idx) = real(yback(3), wp)
      phidarray(idx) = real(yback(4), wp)/aa(idx)**3
 
+       rhot = phidarray(idx)**2/2.0_wp + potential(phiarray(idx))
      print*, "Opening the file to print background data."
 
      open(iter, file='./data/background_iter_'//jname//'.dat', status='replace',action='write')
-       write(iter, 20) x2, real(yback, wp), real(dydttmp,wp), rhoqsum(idx),pqsum(idx),pqsumder(idx)
+       write(iter, 20) x2, real(yback, wp), real(dydttmp,wp), rhoqsum(idx),pqsum(idx),pqsumder(idx), rhot
 
      do while (x2 <= tmax)
 !       call odeint(yback,x1,x2,eps,h1,hmin,k(i),aa(idx),HH(idx), rhoqsum(idx), pqsum(idx),0.0_wp)
-       call odeint(yback,x1,x2,eps,h1,hmin,k(i),aa(idx),HH(idx), rhoqsum(idx), pqsumder(idx),0.0_wp)
+       call odeint(yback,x1,x2,eps,h1,hmin,k(i),aa(idx),HH(idx), rhoqsum(idx), pqsum(idx),0.0_wp)
 !       call rk4(yback, dydtback, x2, dtime, 0.0_wp,rhoqsum(idx),pqsum(idx))
 
 !       call eqn(yback, dydttmp, 0.0_wp, x1, aa(idx),HH(idx),rhoqsum(idx), pqsum(idx), 0.0_wp)
-       call eqn(yback, dydttmp, 0.0_wp, x1, aa(idx),HH(idx),rhoqsum(idx), pqsumder(idx), 0.0_wp)
+       call eqn(yback, dydttmp, 0.0_wp, x1, aa(idx),HH(idx),rhoqsum(idx), pqsum(idx), 0.0_wp)
 
        x1=x2
        x2=x1+dtime
@@ -120,8 +121,10 @@ do iter=1, maxiter
        phidarray(idx) = real(yback(4), wp)/aa(idx)**3
 
 
-       if (mod(idx,100) == 0) then
-         write(iter, 20) x2, real(yback, wp), real(dydttmp, wp), rhoqsum(idx),pqsum(idx),pqsumder(idx)
+       rhot = phidarray(idx)**2/2.0_wp + potential(phiarray(idx))
+
+       if (mod(idx,outbgrndevery) == 0) then
+         write(iter, 20) x2, real(yback, wp), real(dydttmp, wp), rhoqsum(idx),pqsum(idx),pqsumder(idx), rhot
        end if
      end do
   
@@ -175,7 +178,7 @@ do iter=1, maxiter
 !$OMP PARALLEL DO private(i,y,dydt,time,tmp,cntr,x1,x2,h1,ysol,dydtsol, &
 !$OMP                  at,phi,phid,phi2d,rhot,hub,hubd,hub2d,at1,at2, &
 !$OMP                  at3,at4,at3tmp,rhoq,rhoq1,rhoq2,iname,idx2,pressq, &
-!$OMP                  rhoqC, pressqC, qvac, qdvac, wq, vq1, rhochk, betai) &
+!$OMP                  rhoqC, pressqC, qvac, qdvac, wq, vq1, vq2, rhochk, betai) &
 !$OMP             shared(tmax,k,vol0,nsteps,numk,tmin,q,qdot,bckgrnd,jname,iter, &
 !$OMP                  rhoqsum, pqsum, rhoqtmp, pqtmp,dtime,aa,HH,HHd,aa1,aa2)
    do i =1, numk
@@ -211,15 +214,27 @@ do iter=1, maxiter
 
        rhoqC=  renorm (k(i),at,at1,at2,at3)!,phi,phid,phi2d)
 
-       pressqC = renormP(k(i),at,at1,at2,at3,at4)!,phi,phid,phi2d)
+       if (idx2 < 20) then
+         pressqC = third*rhoqC
+       else 
+         pressqC = renormP(k(i),at,at1,at2,at3,at4)!,phi,phid,phi2d)
+       end if
        
 !       print*, "counter terms:", rhoqC, pressqC
 
 
-       wq = -(k(i)**2/(3.0_wp*at**4*(pressqC-rhoqC)))
-       vq1= -2.0_wp*(sqrt(abs(-(k(i)**2-4.0_wp*at**4*rhoqC*wq+wq**2)))-at1)
+       wq = k(i) !-(k(i)**2/(3.0_wp*at**4*(pressqC-rhoqC)))
        qvac=1.0_wp/(at*sqrt(2.0_wp*wq))
-       qdvac=(-zi*wq + vq1/2.0_wp - at1)*qvac/at
+       qdvac=(-zi*wq - at1)*qvac/at
+
+!       if (at1 > 0) then 
+!         vq1= -2.0_wp*(sqrt(abs(-(k(i)**2-4.0_wp*at**4*rhoqC*wq+wq**2)))-at1)
+!         qdvac=(-zi*wq + vq1/2.0_wp - at1)*qvac/at
+!       else 
+!         vq1= -2.0_wp*(-sqrt(abs(-(k(i)**2-4.0_wp*at**4*rhoqC*wq+wq**2)))-at1)
+!         qdvac=(-zi*wq + vq1/2.0_wp - at1)*qvac/at
+! 
+!       end if
  
        betai = beta0*exp(-(k(i)/10.0_wp)**16)!*exp(zi*2.0_wp*pi*k(i))
 !       betai = beta0*exp(-(k(i)/10.0_wp)**4)
@@ -240,6 +255,13 @@ do iter=1, maxiter
 
        if(i == 1) then
          print*, 'ysol initial=', ysol
+         print*, 'wq:', wq
+         print*, 'vq1:', vq1
+         print*, 'vq1 theory:', -2.0_wp*(-sqrt(abs(-(k(i)**2-4.0_wp*at**4*rhoqC*wq+wq**2)))-at1)
+         print*, 'rhoC', rhoqC
+         print*, 'at1:', at1
+         print*, 'k(i):', k(i)
+         print*, " "
        end if
 
 
@@ -255,12 +277,20 @@ do iter=1, maxiter
        rhochk = -zi * at**3 * ( ysol(6)*qvac - ysol(5)*qdvac)
 
        rhoq = k(i)**2/(4.0_wp*pi**2) * & 
-              ((abs(ysol(6))**2-abs(qdvac)**2)+(& !effpotscalar(at**2,phi,phid)+ &
-                    k(i)**2)*(abs(ysol(5))**2-abs(qvac)**2)/at**2) !- 2.0_wp*rhoqC)
+              (abs(ysol(6))**2+(& !effpotscalar(at**2,phi,phid)+ &
+                    k(i)**2)*abs(ysol(5))**2/at**2 - 2.0_wp*rhoqC)
 
        pressq = k(i)**2/(4.0_wp*pi**2) * & 
-              ((abs(ysol(6))**2-abs(qdvac)**2)-( & !effpotscalar(at**2,phi,phid)+ &
-                    k(i)**2)*(abs(ysol(5))**2-abs(qvac)**2)/(3.0_wp*at**2)) !- 2.0_wp*pressqC)
+              (abs(ysol(6))**2-( & !effpotscalar(at**2,phi,phid)+ &
+                    k(i)**2)*abs(ysol(5))**2/(3.0_wp*at**2) - 2.0_wp*pressqC)
+
+!       rhoq = k(i)**2/(4.0_wp*pi**2) * & 
+!              ((abs(ysol(6))**2-abs(qdvac)**2)+(& !effpotscalar(at**2,phi,phid)+ &
+!                    k(i)**2)*(abs(ysol(5))**2-abs(qvac)**2)/at**2) !- 2.0_wp*rhoqC)
+!
+!       pressq = k(i)**2/(4.0_wp*pi**2) * & 
+!              ((abs(ysol(6))**2-abs(qdvac)**2)-( & !effpotscalar(at**2,phi,phid)+ &
+!                    k(i)**2)*(abs(ysol(5))**2-abs(qvac)**2)/(3.0_wp*at**2)) !- 2.0_wp*pressqC)
 !       rhoq = k(i)**2/(4.0_wp*pi**2) * & 
 !              ((abs(y(2))**2-abs(qdvac)**2)+(& !effpotscalar(at**2,phi,phid)+ &
 !                    k(i)**2)*(abs(y(1))**2-abs(qvac)**2)/at**2)! - rhoqC)
@@ -315,10 +345,14 @@ do iter=1, maxiter
 !       rhoqtmp(i,idx2) = rhoq
 !       pqtmp(i,idx2) = pressq
  
-       wq = -k(i)**2/(3.0_wp*at**4*(pressqC-rhoqC))
-       vq1= -2.0_wp*(sqrt(-(k(i)**2-4.0_wp*at**4*rhoqC*wq+wq**2))-at1)
+!       wq = -k(i)**2/(3.0_wp*at**4*(pressqC-rhoqC))
+!       vq1= -2.0_wp*(sqrt(-(k(i)**2-4.0_wp*at**4*rhoqC*wq+wq**2))-at1)
+!       qvac=1.0_wp/(at*sqrt(2.0_wp*wq))
+!       qdvac=(-zi*wq + vq1/2.0_wp - at1)*qvac/at
+
+       wq = k(i) !-(k(i)**2/(3.0_wp*at**4*(pressqC-rhoqC)))
        qvac=1.0_wp/(at*sqrt(2.0_wp*wq))
-       qdvac=(-zi*wq + vq1/2.0_wp - at1)*qvac/at
+       qdvac=(-zi*wq - at1)*qvac/at
     
 !       rhochk =  k(i)**2/(4.0_wp*pi**2) * &
 !              (abs(y(2))**2-abs(qdvac)**2+(& !effpotscalar(at**2,phi,phid)+ &
@@ -350,7 +384,7 @@ do iter=1, maxiter
 !       tmp = ceiling(real(10**floor(log10(real(cntr,wp)))/4.0_wp,wp))
         tmp = 2000
      
-       if(mod(cntr, tmp) == 0 ) then 
+       if(mod(cntr, outevery) == 0 ) then 
          write(i, 10), x1, k(i), ysol(5), ysol(6), at, at1, at2, at3, at4, &
               2*aimag(ysol(5)*conjg(ysol(6))*at**3), rhoq, 2.0_wp*rhoqC, pressq, 2.0_wp*pressqC, &
               qvac, qdvac, rhochk
@@ -438,7 +472,7 @@ end do
 
    123 format(6a20)
    10 format(22es30.15e3)
-   20 format(12es30.15e3)
+   20 format(13es30.15e3)
 
 
    deallocate (k, q, qdot, rhoqsum, pqsum, pqsumder, rhoqtmp, pqtmp, y, dydt, bckgrnd, &

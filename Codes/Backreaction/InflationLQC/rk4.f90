@@ -107,7 +107,7 @@ complex(wp), DIMENSION(:):: ystart
 !      end subroutine rkqs
 !    end interface
 
-integer(ip), PARAMETER :: MAXSTP=90000000,NMAX=50,KMAXX=200
+integer(ip), PARAMETER :: MAXSTP=100000000,NMAX=50,KMAXX=200
 real(wp), parameter :: TINY=1.0d-40
 
 INTEGER :: i,kmax,kount,nstp
@@ -234,7 +234,11 @@ htemp=SAFETY*h*(errmax**PSHRNK)
 h=sign(max(abs(htemp),0.1_wp*abs(h)),h)
 
 xnew=x+h
-if(xnew.eq.x)pause 'stepsize underflow rkqs'
+if(xnew.eq.x) then 
+print*, 'stepsize and htry =', h, htry
+pause 'stepsize underflow rkqs'
+end if
+
 goto 1
 
 else

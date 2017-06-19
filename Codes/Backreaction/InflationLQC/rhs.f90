@@ -199,7 +199,11 @@ module rhs
           phidloctmp = y4/y1**3
       
           rhoqlocal = philoc
-          pqlocal = rhoqlocal*third!phidloc
+!          if (y2 > 0) then 
+!            pqlocal = third*rhoqlocal
+!          else
+            pqlocal = phidloc
+!          end if
  
        ! adot
            yderiv(1) = y2 !* sqrt(8.0_wp*pi*third*(phidloc**2/2.0_wp &
@@ -210,9 +214,12 @@ module rhs
 !           yderiv(2) = -4.0_wp*y1*pi*third*(2.0_wp*phidloctmp**2 - &
 !                             2.0_wp*potential(y3) +rhoqlocal+3.0_wp*pqlocal) 
 
-           yderiv(2) = -4.0_wp*pi*y1*(phidloctmp**2+rhoqlocal+pqlocal) &
-                         + 8.0_wp*pi*third*y1*(phidloctmp**2/2.0_wp &
-                                 +potential(y3)+rhoqlocal)
+           yderiv(2) = -4.0_wp*pi*y1*(phidloctmp**2+rhoqlocal+pqlocal)* &
+                         (1.0_wp - 2.0_wp*(half*phidloctmp**2+potential(y3)+rhoqlocal) &
+                                           /rhomax) &
+                       + 8.0_wp*pi*third*y1*(half*phidloctmp**2+potential(y3)+rhoqlocal)* &
+                         (1.0_wp - (half*phidloctmp**2+potential(y3)+rhoqlocal) &
+                                           /rhomax)
        
        ! phidot 
            yderiv(3) = y4/y1**3
@@ -234,8 +241,11 @@ module rhs
           phidloctmp = y4/y1**3
       
           rhoqlocal = philoc
-!          pqlocal = rhoqlocal*third !phidloc
-          pqlocal = phidloc
+!          if (y2 > 0) then
+!            pqlocal = third*rhoqlocal !phidloc
+!          else
+            pqlocal = phidloc
+!          end if
  
        ! adot
            yderiv(1) = y2 !* sqrt(8.0_wp*pi*third*(phidloc**2/2.0_wp &
@@ -245,10 +255,13 @@ module rhs
        ! hdot
 !           yderiv(2) = -4.0_wp*y1*pi*third*(2.0_wp*phidloctmp**2 - &
 !                             2.0_wp*potential(y3) +rhoqlocal+3.0_wp*pqlocal) 
+           yderiv(2) = -4.0_wp*pi*y1*(phidloctmp**2+rhoqlocal+pqlocal)* &
+                         (1.0_wp - 2.0_wp*(half*phidloctmp**2+potential(y3)+rhoqlocal) &
+                                           /rhomax) &
+                       + 8.0_wp*pi*third*y1*(half*phidloctmp**2+potential(y3)+rhoqlocal)* &
+                         (1.0_wp - (half*phidloctmp**2+potential(y3)+rhoqlocal) &
+                                           /rhomax)
 
-            yderiv(2) = -4.0_wp*pi*y1*(phidloctmp**2+rhoqlocal+pqlocal) &
-                         + 8.0_wp*pi*third*y1*(phidloctmp**2/2.0_wp &
-                                 +potential(y3)+rhoqlocal)
        
        ! phidot 
            yderiv(3) = y4/y1**3
@@ -413,6 +426,8 @@ module rhs
                (at**2*(klocal**2 + at**2*mu**2)**2.5) - &
               (0.0625*at1*(at1**3 + 4.*at*at1*at2 + at**2*at3)*&
                  mu**2)/(at**2*(klocal**2 + at**2*mu**2)**2.5)
+
+       renorm = 0.0_wp
 
   end function renorm
 
@@ -645,6 +660,8 @@ module rhs
 !                (at1**4 + 12.*at*at1**2*at2 + 4.*at**2*at2**2 + &
 !                  7.*at**2*at1*at3 + at**3*at4)*mu**2)/&
 !              (at**2*(klocal**2 + at**2*mu**2)**2.5)
+
+       renormP = 0.0_wp
 
   end function renormp
 
