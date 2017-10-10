@@ -5,23 +5,53 @@ There are two types of files for coding here:
 
 In additions there are two *.dat files for initial data 
 
-1. initialdata.dat: has the initial data for the modes computed by Mathematica file at the time 'tini', which is much after the bounce in the classical regime.
-2. input.dat: has the initial data for the background evolution in the very first iteration.
+1. initialdata.dat: has the initial data for the modes computed by Mathematica
+file at the time 'tini', which is much after the bounce in the classical
+regime.
+2. input.dat: has the initial data for the background evolution in the very
+first iteration.
 
 Job of mathematica files:
 ------------------------
-The mathematica file 'mathinitial.m' specifies the intiial condition at the bounce and 'geninitial.m' evolve the background both forward and backwards in tim across the quantum bounce. The idea is that in this evolution we can also give the initial data for the perturbations in the quantum gravity regime and evolve it forward in time.
+The mathematica file 'mathinitial.m' specifies the intiial condition at the
+bounce and 'geninitial.m' evolve the background both forward and backwards in
+tim across the quantum bounce. The idea is that in this evolution we can also
+give the initial data for the perturbations in the quantum gravity regime and
+evolve it forward in time.
 
-Now, at a time much after the bounce---usually taken to be t=30000 t_pl---we read the conditions for both the background quantities (printed in input.dat) and perturbations (printed in initialdata.dat). The intiaildata.dat will be useful only when we want to give the state coming from LQC as the initial data for the classical evolution. In the current version of the code, we are not doing that. We are giving an artificial ecited state either a Gaussian or exponential Beta coefficients, which can be generated inside the Fortran code. 
+Now, at a time much after the bounce---usually taken to be t=30000 t_pl---we
+read the conditions for both the background quantities (printed in input.dat)
+and perturbations (printed in initialdata.dat). The intiaildata.dat will be
+useful only when we want to give the state coming from LQC as the initial data
+for the classical evolution. In the current version of the code, we are not
+doing that. We are giving an artificial ecited state either a Gaussian or
+exponential Beta coefficients, which can be generated inside the Fortran code. 
 
 Job of the Fortran code:
 -----------------------
 
-We utilize the modular programing feature of Fortran. Similar types of subroutines are defined in a a module which is then used in the main code which contains the driver (technically referred to as the 'program'). Each of these modules have been defined in separate .f90 files. We will describe each of them separately here:
+We utilize the modular programing feature of Fortran. Similar types of
+subroutines are defined in a a module which is then used in the main code which
+contains the driver (technically referred to as the 'program'). Each of these
+modules have been defined in separate .f90 files. We will describe each of them
+separately here:
 
-a) kinds.f90: In module 'kinds', this file contains the definitions of 'sp' (single precision), 'dp' (double precision), 'qp' (quad precision). But, we wil be working with double precision all the time. So, we have defined 'wp' (working precision) to be 'dp'.
+a) kinds.f90: In module 'kinds', this file contains the definitions of 'sp'
+(single precision), 'dp' (double precision), 'qp' (quad precision). But, we wil
+be working with double precision all the time. So, we have defined 'wp' (working
+precision) to be 'dp'.
 
-b) vars.f90: In module 'vars', this file contains the definition of the global variables to be used at various places in the code. Whenever the module 'vars' is called these vriables will be used as they are defined here. The arrays are declared as allocatable which are then given required size allocation in the main code. There are parameters defined for convenience These parameters are constants and their values can not be changed wnywhere else in the code. For example, if one ries to redefine kconst as something else, the code wil generate errors. This means that these parameters are "use only" for the rest of the code. 
+b) vars.f90: In module 'vars', this file contains the definition of the global
+variables to be used at various places in the code. Whenever the module 'vars'
+is called these vriables will be used as they are defined here. The arrays are
+declared as allocatable which are then given required size allocation in the
+main code. There are parameters defined for convenience These parameters are
+constants and their values can not be changed wnywhere else in the code. For
+example, if one ries to redefine kconst as something else, the code wil generate
+errors. This means that these parameters are "use only" for the rest of the
+code. 
 
- At the end of the module, there is list of variables in a line starting with 'namelist'. This is a way of declaring that the values of these parameters are to be provided by the user.    
+ At the end of the module, there is list of variables in a line starting with
+'namelist'. This is a way of declaring that the values of these parameters are
+to be provided by the user.    
 
