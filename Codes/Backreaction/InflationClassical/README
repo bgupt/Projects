@@ -53,5 +53,26 @@ code.
 
  At the end of the module, there is list of variables in a line starting with
 'namelist'. This is a way of declaring that the values of these parameters are
-to be provided by the user.    
+to be provided by the user. These namelist variables are initialized in the
+input.dat file which is read by the subroutine readparams() in main.f90. Instead
+of providing the initial values of the namelist variables by hand, we create
+this file at the end of the mathematica file 'geninitial.m'.
+
+c) rhs.f90: This file defines the module rhs which contains various subroutines
+and functions that are needed to define the equations of motion for the
+background and perturbations. For example, declaring potentials, derivatives of
+potential, equations for motion, counter terms for the energy density and
+pressure of the quantum perturbations. 
+
+d) rk4.f90:  As the name suggests this file defines the Runge-Kutta subroutines
+to be used in integrating the equations of motion for the background and
+perturbations. The subroutines are packaged in the module named 'rk'. At the
+moment there are two rk4 subroutines: rk4() [fixed step size] and odeint()
+[adaptive step size based on rk4 and rk5 method. This is directly copied from
+the Numerical Recipe in Fortran]. The fixed step size subroutine just there for
+testing and was initially used in simple situations. But, in the main code we
+use the adaptive step size which is quite crucial when the perturbation energy
+density is large enough.
+
+
 
