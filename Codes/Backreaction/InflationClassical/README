@@ -74,5 +74,8 @@ testing and was initially used in simple situations. But, in the main code we
 use the adaptive step size which is quite crucial when the perturbation energy
 density is large enough.
 
-
+e) main.f90: This is file has the main program that assembles all different
+pieces together and drives the whole code. The file begins with a program rather
+than a module unlike the other files. Refer to the comments inside the code for
+information on the function of the code. 
 
